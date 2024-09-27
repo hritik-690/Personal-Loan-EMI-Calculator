@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Loan EMI Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+            position: relative; /* Allow absolute positioning inside the body */
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: bold;
+            color: green;
+        }
+        .rupee-sign {
+            font-size: 80px; /* Increase the size of the Rupee sign */
+            color: goldenrod;
+            position: absolute; /* Position it on the left side */
+            left: 20px; /* Position it from the left */
+            top: 30px; /* Adjust the top margin for better alignment */
+            border: 2px solid black; /* Add border for rectangular shape */
+            padding: 10px; /* Padding inside the rectangular shape */
+            width: 100px; /* Fixed width for rectangular shape */
+            height: 100px; /* Fixed height for rectangular shape */
+            line-height: 100px; /* Center the text vertically */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: green;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: darkgreen;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: lightgray;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Zzorba Financial Consultant Services</h1>
+
+    <div class="rupee-sign">₹</div> <!-- Large Indian Rupee sign -->
+
+    <h2>Personal Loan EMI Calculator</h2>
+
+    <label for="loanAmount">Loan Amount (₹):</label>
+    <input type="number" id="loanAmount" placeholder="Enter loan amount" />
+
+    <label for="tenure">Loan Tenure (in months):</label>
+    <input type="number" id="tenure" placeholder="Enter loan tenure in months" />
+
+    <label for="interestRate">Rate of Interest (in %):</label>
+    <input type="number" id="interestRate" placeholder="Enter rate of interest" step="0.1" />
+
+    <button onclick="calculateEMI()">Calculate EMI</button>
+    <button onclick="downloadPDF()">Download PDF</button>
+
+    <div id="emi-details"></div>
+    <div id="repayment-schedule"></div>
+</div>
+
+<script>
+    // EMI Calculation and Repayment Schedule Function
+    function calculateEMI() {
+        const loanAmount = parseFloat(document.getElementById('loanAmount').value);
+        const tenure = parseInt(document.getElementById('tenure').value);
+        const interestRate = parseFloat(document.getElementById('interestRate').value) / 12 / 100;
+
+        // Check if tenure is greater than 60
+        if (tenure > 60) {
+            alert('Please enter a correct tenure (max 60 months).');
+            return;
+        }
+
+        if (!loanAmount || !tenure || !interestRate) {
+            alert('Please fill out all fields.');
+            return;
+        }
+
+        // Calculate EMI
+        const emi = (loanAmount * interestRate * Math.pow(1 + interestRate, tenure)) / (Math.pow(1 + interestRate, tenure) - 1);
+        let totalInterest = 0;
+        let outstandingPrincipal = loanAmount;
+
+        // Display EMI Details
+        document.getElementById('emi-details').innerHTML = `
+            <h3>EMI Details</h3>
+            <p>Monthly EMI: ₹${emi.toFixed(2)}</p>
+            <p>Total Interest Payable: ₹${(emi * tenure - loanAmount).toFixed(2)}</p>
+            <p>Total Payment (Principal + Interest): ₹${(emi * tenure).toFixed(2)}</p>
+        `;
+
+        // Repayment Schedule Table
+        let scheduleTable = `
+            <h3>Repayment Schedule</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>EMI (₹)</th>
+                        <th>Interest (₹)</th>
+                        <th>Principal (₹)</th>
+                        <th>Outstanding Principal (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        for (let i = 1; i <= tenure; i++) {
+            const interestForMonth = outstandingPrincipal * interestRate;
+            const principalForMonth = emi - interestForMonth;
+            outstandingPrincipal -= principalForMonth;
+            totalInterest += interestForMonth;
+
+            scheduleTable += `
+                <tr>
+                    <td>${i}</td>
+                    <td>${emi.toFixed(2)}</td>
+                    <td>${interestForMonth.toFixed(2)}</td>
+                    <td>${principalForMonth.toFixed(2)}</td>
+                    <td>${outstandingPrincipal.toFixed(2)}</td>
+                </tr>
+            `;
+        }
+
+        scheduleTable += `</tbody></table>`;
+        document.getElementById('repayment-schedule').innerHTML = scheduleTable;
+    }
+
+    // PDF Download Function
+    function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Add title and loan details to PDF
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(0, 128, 0); // Green color for Zzorba Financial Consultant Services
+        doc.text(20, 20, 'Zzorba Financial Consultant Services');
+
+        const loanAmount = document.getElementById('loanAmount').value;
+        const tenure = document.getElementById('tenure').value;
+        const interestRate = document.getElementById('interestRate').value;
+
+        doc.setFontSize(12);
+        doc.setTextColor(0); // Black text for normal content
+        doc.text(20, 40, `Loan Amount: ₹${loanAmount}`);
+        doc.text(20, 50, `Loan Tenure: ${tenure} months`);
+        doc.text(20, 60, `Interest Rate: ${interestRate}%`);
+
+        const emi = parseFloat(document.getElementById('emi-details').querySelector('p:nth-of-type(1)').textContent.replace('Monthly EMI: ₹', ''));
+        const totalInterest = parseFloat(document.getElementById('emi-details').querySelector('p:nth-of-type(2)').textContent.replace('Total Interest Payable: ₹', ''));
+        const totalPayment = parseFloat(document.getElementById('emi-details').querySelector('p:nth-of-type(3)').textContent.replace('Total Payment (Principal + Interest): ₹', ''));
+
+        // EMI Details table
+        doc.autoTable({
+            startY: 70,
+            head: [['Monthly EMI (₹)', 'Total Interest (₹)', 'Total Payment (₹)']],
+            body: [[emi.toFixed(2), totalInterest.toFixed(2), totalPayment.toFixed(2)]],
+        });
+
+        // Repayment Schedule table
+        const rows = [];
+        const repaymentSchedule = document.getElementById('repayment-schedule').querySelectorAll('tbody tr');
+        repaymentSchedule.forEach(row => {
+            const cols = row.querySelectorAll('td');
+            const rowData = [];
+            cols.forEach(col => rowData.push(col.innerText));
+            rows.push(rowData);
+        });
+
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 10,
+            head: [['Month', 'EMI (₹)', 'Interest (₹)', 'Principal (₹)', 'Outstanding Principal (₹)']],
+            body: rows,
+        });
+
+        // Save PDF
+        doc.save('EMI_Repayment_Schedule.pdf');
+    }
+</script>
+
+</body>
+</html>
